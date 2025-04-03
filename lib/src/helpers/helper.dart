@@ -6,8 +6,7 @@ import 'dart:convert';
 import 'package:ant_media_flutter/ant_media_flutter.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
-import '../utils/websocket.dart'
-    if (dart.library.js) '../utils/websocket_web.dart';
+import '../utils/websocket.dart' if (dart.library.js) '../utils/websocket_web.dart';
 
 // AntHelper is an interface to the Flutter SDK of Ant Media Server
 class AntHelper {
@@ -110,19 +109,22 @@ class AntHelper {
   // Switch camera for the local stream
   Future<void> switchCamera() async {
     if (_localStream != null) {
-      final videoTrack = _localStream!
-          .getVideoTracks()
-          .firstWhere((track) => track.kind == 'video');
+      final videoTrack = _localStream!.getVideoTracks().firstWhere((track) => track.kind == 'video');
       Helper.switchCamera(videoTrack);
+    }
+  }
+
+  Future<void> zoomCamera(double zoomLevel) async {
+    if (_localStream != null) {
+      final videoTrack = _localStream!.getVideoTracks().firstWhere((track) => track.kind == 'video');
+      Helper.setZoom(videoTrack, zoomLevel);
     }
   }
 
   // Mute or unmute the local stream
   Future<void> muteMic(bool mute) async {
     if (_localStream != null) {
-      final audioTrack = _localStream!
-          .getAudioTracks()
-          .firstWhere((track) => track.kind == 'audio');
+      final audioTrack = _localStream!.getAudioTracks().firstWhere((track) => track.kind == 'audio');
       Helper.setMicrophoneMute(mute, audioTrack);
     }
   }
@@ -130,9 +132,7 @@ class AntHelper {
   // Toggle the camera on or off
   Future<void> toggleCam(bool state) async {
     if (_localStream != null) {
-      final videoTrack = _localStream!
-          .getVideoTracks()
-          .firstWhere((track) => track.kind == 'video');
+      final videoTrack = _localStream!.getVideoTracks().firstWhere((track) => track.kind == 'video');
       videoTrack.enabled = state;
     }
   }
@@ -170,8 +170,7 @@ class AntHelper {
   }
 
   // Limit maximum bitrate for audio or video type
-  Future<bool> setMaxBitrate(
-      String streamId, String type, int maxBitrateKbps) async {
+  Future<bool> setMaxBitrate(String streamId, String type, int maxBitrateKbps) async {
     final sender = await getSender(streamId, type);
     if (sender != null) {
       final parameters = sender.parameters;
@@ -190,8 +189,7 @@ class AntHelper {
       case 'start':
         final id = mapData['streamId'];
         onStateChange(HelperState.CallStateNew);
-        _peerConnections[id] =
-            await _createPeerConnection(id, 'publish', userScreen);
+        _peerConnections[id] = await _createPeerConnection(id, 'publish', userScreen);
         await _createDataChannel(_streamId, _peerConnections[_streamId]!);
         await _createOfferAntMedia(id, _peerConnections[id]!, 'publish');
         break;
@@ -204,20 +202,17 @@ class AntHelper {
         sdp = sdp.replaceAll("a=extmap:13 urn:3gpp:video-orientation\r\n", "");
         final dataChannelMode = isTypeOffer ? "play" : "publish";
 
-        print(
-            "Flutter setRemoteDescription: $sdp for streamId: $id and type: $type");
+        print("Flutter setRemoteDescription: $sdp for streamId: $id and type: $type");
 
         try {
           if (_peerConnections[id] == null) {
-            _peerConnections[id] =
-                await _createPeerConnection(id, dataChannelMode, userScreen);
+            _peerConnections[id] = await _createPeerConnection(id, dataChannelMode, userScreen);
             if (isTypeOffer) {
               await _createDataChannel(id, _peerConnections[id]!);
             }
           }
 
-          await _peerConnections[id]!
-              .setRemoteDescription(RTCSessionDescription(sdp, type));
+          await _peerConnections[id]!.setRemoteDescription(RTCSessionDescription(sdp, type));
           print("Remote description set successfully for streamId: $id");
 
           for (final candidate in _remoteCandidates) {
@@ -227,12 +222,10 @@ class AntHelper {
 
           if (isTypeOffer) {
             print("Creating answer for streamId: $id");
-            final answer =
-                await _peerConnections[id]!.createAnswer(_dc_constraints);
+            final answer = await _peerConnections[id]!.createAnswer(_dc_constraints);
             await _peerConnections[id]!.setLocalDescription(answer);
 
-            final sdpWithStereo = answer.sdp!
-                .replaceAll("useinbandfec=1", "useinbandfec=1; stereo=1");
+            final sdpWithStereo = answer.sdp!.replaceAll("useinbandfec=1", "useinbandfec=1; stereo=1");
             final request = {
               'command': 'takeConfiguration',
               'streamId': id,
@@ -244,10 +237,8 @@ class AntHelper {
           }
         } catch (error) {
           print("Error setting remote description for streamId: $id: $error");
-          if (error.toString().contains("InvalidAccessError") ||
-              error.toString().contains("setRemoteDescription")) {
-            print(
-                "Error: Codec incompatibility or other issue setting remote description for streamId: $id");
+          if (error.toString().contains("InvalidAccessError") || error.toString().contains("setRemoteDescription")) {
+            print("Error: Codec incompatibility or other issue setting remote description for streamId: $id");
           }
         }
         break;
@@ -258,8 +249,7 @@ class AntHelper {
 
       case 'takeCandidate':
         final id = mapData['streamId'];
-        final candidate = RTCIceCandidate(
-            mapData['candidate'], mapData['id'], mapData['label']);
+        final candidate = RTCIceCandidate(mapData['candidate'], mapData['id'], mapData['label']);
         if (_peerConnections[id] != null) {
           await _peerConnections[id]!.addCandidate(candidate);
         } else {
@@ -286,19 +276,15 @@ class AntHelper {
 
       case 'notification':
         final decoder = JsonDecoder();
-        if (mapData['definition'] == 'play_finished' &&
-            _type == AntMediaType.Conference) {
+        if (mapData['definition'] == 'play_finished' && _type == AntMediaType.Conference) {
           Timer(Duration(seconds: 5), () {
             play(_roomId, "", _roomId, [], "", "", "");
           });
-        } else if (mapData['definition'] == 'publish_finished' ||
-            mapData['definition'] == 'play_finished') {
+        } else if (mapData['definition'] == 'publish_finished' || mapData['definition'] == 'play_finished') {
           closePeerConnection(_streamId);
-        } else if (mapData['definition'] == 'play_started' &&
-            _type == AntMediaType.Conference) {
+        } else if (mapData['definition'] == 'play_started' && _type == AntMediaType.Conference) {
           _getBroadcastObject(_roomId);
-        } else if (mapData['definition'] == 'broadcastObject' &&
-            _type == AntMediaType.Conference) {
+        } else if (mapData['definition'] == 'broadcastObject' && _type == AntMediaType.Conference) {
           final broadcastObject = decoder.convert(mapData['broadcast']);
           if (mapData['streamId'] == _roomId) {
             _handleMainTrackBroadcastObject(broadcastObject);
@@ -322,9 +308,7 @@ class AntHelper {
         break;
 
       case 'connectWithNewId':
-        if (_type == AntMediaType.Play ||
-            _type == AntMediaType.Peer ||
-            _type == AntMediaType.Conference) {
+        if (_type == AntMediaType.Play || _type == AntMediaType.Peer || _type == AntMediaType.Conference) {
           join(_streamId);
         }
         break;
@@ -351,57 +335,15 @@ class AntHelper {
 
       if (_autoStart) {
         if (_type == AntMediaType.Publish) {
-          publish(
-              _streamId,
-              _token,
-              "",
-              "",
-              _streamId,
-              "",
-              "");
+          publish(_streamId, _token, "", "", _streamId, "", "");
         } else if (_type == AntMediaType.DataChannelOnly) {
-          publish(
-              _streamId,
-              _token,
-              "",
-              "",
-              _streamId,
-              "",
-              "");
-          play(
-              _streamId,
-              _token,
-              "",
-              [],
-              "",
-              "",
-              "");
+          publish(_streamId, _token, "", "", _streamId, "", "");
+          play(_streamId, _token, "", [], "", "", "");
         } else if (_type == AntMediaType.Conference) {
-          publish(
-              _streamId,
-              _token,
-              "",
-              "",
-              _streamId,
-              _roomId,
-              "");
-          play(
-              _roomId,
-              _token,
-              _roomId,
-              [],
-              "",
-              "",
-              "");
+          publish(_streamId, _token, "", "", _streamId, _roomId, "");
+          play(_roomId, _token, _roomId, [], "", "", "");
         } else if (_type == AntMediaType.Play) {
-          play(
-              _streamId,
-              _token,
-              "",
-              [],
-              "",
-              "",
-              "");
+          play(_streamId, _token, "", [], "", "", "");
         } else if (_type == AntMediaType.Peer) {
           join(_streamId);
         }
@@ -438,14 +380,12 @@ class AntHelper {
           'minHeight': '480',
           'minFrameRate': '30',
         },
-        'facingMode': 'user',
+        'facingMode': 'environment', // This specifies the back camera
         'optional': [],
       },
     };
 
-    final stream = userScreen
-        ? await navigator.mediaDevices.getDisplayMedia(mediaConstraints)
-        : await navigator.mediaDevices.getUserMedia(mediaConstraints);
+    final stream = userScreen ? await navigator.mediaDevices.getDisplayMedia(mediaConstraints) : await navigator.mediaDevices.getUserMedia(mediaConstraints);
     onLocalStream(stream);
     return stream;
   }
@@ -460,10 +400,7 @@ class AntHelper {
     String media,
     bool userScreen,
   ) async {
-    if (_type == AntMediaType.Publish ||
-        _type == AntMediaType.Peer ||
-        _type == AntMediaType.Conference ||
-        _type == AntMediaType.Default) {
+    if (_type == AntMediaType.Publish || _type == AntMediaType.Peer || _type == AntMediaType.Conference || _type == AntMediaType.Default) {
       if (media != 'data' && _localStream == null) {
         _localStream = await createStream(media, userScreen);
         _remoteStreams.add(_localStream!);
@@ -475,8 +412,7 @@ class AntHelper {
     if (_type == AntMediaType.Publish ||
         _type == AntMediaType.Peer ||
         _type == AntMediaType.Default ||
-        (_type == AntMediaType.Conference &&
-            _type != AntMediaType.DataChannelOnly)) {
+        (_type == AntMediaType.Conference && _type != AntMediaType.DataChannelOnly)) {
       if (media != 'data' && _localStream != null) {
         for (final track in _localStream!.getTracks()) {
           final sender = await pc.addTrack(track, _localStream!);
@@ -497,8 +433,7 @@ class AntHelper {
     };
 
     pc.onIceConnectionState = (state) {
-      if (state == RTCIceConnectionState.RTCIceConnectionStateConnected &&
-          maxVideoBitrate != -1) {
+      if (state == RTCIceConnectionState.RTCIceConnectionStateConnected && maxVideoBitrate != -1) {
         setMaxBitrate(id, "video", maxVideoBitrate);
         if (maxAudioBitrate != -1) {
           setMaxBitrate(id, "audio", maxAudioBitrate);
@@ -547,8 +482,7 @@ class AntHelper {
     String media,
   ) async {
     try {
-      final s = await pc
-          .createOffer(DataChannelOnly ? _dc_constraints : _constraints);
+      final s = await pc.createOffer(DataChannelOnly ? _dc_constraints : _constraints);
       await pc.setLocalDescription(s);
       final request = {
         'command': 'takeConfiguration',
@@ -562,15 +496,13 @@ class AntHelper {
     }
   }
 
-
   Future<void> _createAnswerAntMedia(
     String id,
     RTCPeerConnection pc,
     String media,
   ) async {
     try {
-      final s = await pc
-          .createAnswer(DataChannelOnly ? _dc_constraints : _constraints);
+      final s = await pc.createAnswer(DataChannelOnly ? _dc_constraints : _constraints);
       await pc.setLocalDescription(s);
       final request = {
         'command': 'takeConfiguration',
@@ -668,13 +600,15 @@ class AntHelper {
     };
     _sendAntMedia(request);
   }
-  void getStreamInfo(String streamId){
+
+  void getStreamInfo(String streamId) {
     final request = {
       'command': 'getStreamInfo',
       'streamId': streamId,
     };
     _sendAntMedia(request);
   }
+
   // Force stream into a specific quality
   void forceStreamQuality(String streamId, int resolution) {
     final request = {
@@ -758,10 +692,7 @@ class AntHelper {
     final eventStreamId = notificationEvent['streamId'];
     final eventType = notificationEvent['eventType'];
 
-    if (eventType == "CAM_TURNED_OFF" ||
-        eventType == "CAM_TURNED_ON" ||
-        eventType == "MIC_MUTED" ||
-        eventType == "MIC_UNMUTED") {
+    if (eventType == "CAM_TURNED_OFF" || eventType == "CAM_TURNED_ON" || eventType == "MIC_MUTED" || eventType == "MIC_UNMUTED") {
       _getBroadcastObject(eventStreamId);
     } else if (eventType == "TRACK_LIST_UPDATED") {
       print("TRACK_LIST_UPDATED -> ${notificationEvent.toString()}");
